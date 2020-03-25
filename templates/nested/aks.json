@@ -1,25 +1,7 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "aksServicePrincipalAppId": {
-            "type": "string",
-            "metadata": {
-                "description": "Application ID/Client ID  of the service principal. Used by AKS to manage AKS related resources on Azure like vms, subnets."
-            }
-        },
-        "aksServicePrincipalClientSecret": {
-            "type": "securestring",
-            "metadata": {
-                "description": "Secret of the service principal. Used by AKS to manage Azure."
-            }
-        },
-        "aksServicePrincipalObjectId": {
-            "type": "string",
-            "metadata": {
-                "description": "Object ID of the service principal."
-            }
-        },
         "aksDnsPrefix": {
             "defaultValue": "aks",
             "type": "string",
@@ -71,7 +53,7 @@
             "defaultValue": true,
             "type": "bool"
         },
-        "aksMinAgentCount": {
+        "aksMinNodeCount": {
             "defaultValue": 1,
             "minValue": 1,
             "maxValue": 50,
@@ -80,7 +62,7 @@
                 "description": "The minimum number of agent nodes for the cluster."
             }
         },
-        "aksMaxAgentCount": {
+        "aksMaxNodeCount": {
             "defaultValue": 10,
             "minValue": 1,
             "maxValue": 50,
@@ -89,7 +71,7 @@
                 "description": "The maximum number of agent nodes for the cluster."
             }
         },
-        "aksAgentVMSize": {
+        "aksNodeVMSize": {
             "defaultValue": "Standard_D4s_v3",
             "allowedValues": [
                 "Standard_A0",
@@ -354,12 +336,8 @@
     "variables": {
         "workspaceName": "[concat('workspace', '-', parameters('suffix'))]",
         "storageAccountName": "[concat('stor', parameters('suffix'))]",
-        "identityName": "[concat('appgwContrIdentity' , '-', parameters('suffix'))]",
         "aksClusterName": "[concat('aks' , '-', parameters('suffix'))]",
-        "identityId": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]",
-        "aksClusterId": "[resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName'))]",
-        "networkContributorRole": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '4d97b98b-1d4f-4787-a291-c67834d212e7')]",
-        "managedIdentityOperatorRole": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'f1a07417-d97a-45cb-824c-7a7467783830')]"
+        "aksClusterId": "[resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName'))]"
     },
     "resources": [
         {
@@ -388,62 +366,16 @@
             }
         },
         {
-            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-            "name": "[variables('identityName')]",
-            "apiVersion": "2015-08-31-PREVIEW",
-            "location": "[resourceGroup().location]"
-        },
-        {
-            "type": "Microsoft.Resources/deployments",
-            "name": "RoleAssignmentDeploymentForKubenetesSp",
-            "apiVersion": "2017-05-10",
-            "subscriptionId": "[subscription().subscriptionId]",
-            "resourceGroup": "[resourceGroup().name]",
-            "properties": {
-                "mode": "Incremental",
-                "template": {
-                    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-                    "contentVersion": "1.0.0.0",
-                    "parameters": {},
-                    "variables": {},
-                    "resources": [
-                        {
-                            "type": "Microsoft.Network/virtualNetworks/subnets/providers/roleAssignments",
-                            "apiVersion": "2017-05-01",
-                            "name": "[concat(parameters('aksVnetName'), '/', parameters('aksSubnetName'),'/Microsoft.Authorization/', guid(resourceGroup().id, 'aksvnetaccess'))]",
-                            "properties": {
-                                "roleDefinitionId": "[variables('networkContributorRole')]",
-                                "principalId": "[parameters('aksServicePrincipalObjectId')]",
-                                "scope": "[parameters('aksSubnetId')]"
-                            }
-                        },
-                        {
-                            "type": "Microsoft.ManagedIdentity/userAssignedIdentities/providers/roleAssignments",
-                            "apiVersion": "2017-05-01",
-                            "name": "[concat(variables('identityName'), '/Microsoft.Authorization/', guid(resourceGroup().id, 'aksidentityaccess'))]",
-                            "properties": {
-                                "roleDefinitionId": "[variables('managedIdentityOperatorRole')]",
-                                "principalId": "[parameters('aksServicePrincipalObjectId')]",
-                                "scope": "[variables('identityId')]",
-                                "principalType": "ServicePrincipal"
-                            }
-                        }
-                    ]
-                }
-            },
-            "dependsOn": [
-                "[concat('Microsoft.ManagedIdentity/userAssignedIdentities/', variables('identityName'))]"
-            ]
-        },
-        {
             "type": "Microsoft.ContainerService/managedClusters",
             "name": "[variables('aksClusterName')]",
             "apiVersion": "2019-04-01",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[concat('Microsoft.Resources/deployments/', 'RoleAssignmentDeploymentForKubenetesSp')]",
                 "[variables('workspaceName')]"
             ],
+            "identity": {
+                "type": "SystemAssigned"
+            },
             "properties": {
                 "kubernetesVersion": "[parameters('aksVersion')]",
                 "enableRBAC": "[parameters('aksEnableRBAC')]",
@@ -465,9 +397,9 @@
                         "name": "pool1",
                         "osDiskSizeGB": "[parameters('aksAgentOsDiskSizeGB')]",
                         "count": "[parameters('aksNodeCount')]",
-                        "minCount": "[parameters('aksMinAgentCount')]",
-                        "maxCount": "[parameters('aksMaxAgentCount')]",
-                        "vmSize": "[parameters('aksAgentVMSize')]",
+                        "minCount": "[parameters('aksMinNodeCount')]",
+                        "maxCount": "[parameters('aksMaxNodeCount')]",
+                        "vmSize": "[parameters('aksNodeVMSize')]",
                         "osType": "Linux",
                         "type": "VirtualMachineScaleSets",
                         "storageProfile": "ManagedDisks",
@@ -476,10 +408,6 @@
                         "maxPods": "[parameters('maxPods')]"
                     }
                 ],
-                "servicePrincipalProfile": {
-                    "clientId": "[parameters('aksServicePrincipalAppId')]",
-                    "secret": "[parameters('aksServicePrincipalClientSecret')]"
-                },
                 "networkProfile": {
                     "networkPlugin": "[parameters('networkPlugin')]",
                     "serviceCidr": "[parameters('aksServiceCIDR')]",

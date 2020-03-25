@@ -1,14 +1,14 @@
 param(
-    $location = 'australiaeast',
-    $prefix = 'aks-slb-vmss',
+    $location = 'australiasoutheast',
+    $prefix = 'aks-slb-vmss-mid',
     $rgName = "$prefix-rg",
     $spName = "$prefix-sp",
     $deploymentName = $('{0}-{1}-{2}' -f $prefix, 'deployment', (Get-Date).ToFileTime()),
     $containerName = 'templates',
-    $aksVersion = '1.14.6',
-    $aksNodeCount = 3,
+    $aksVersion = '1.15.10',
+    $aksNodeCount = 1,
     $aksMaxPods = 50,
-    $aksAgentVmSize = 'Standard_D2s_v3',
+    $aksNodeVMSize = 'Standard_D2s_v3',
     $tags = @{
         'environment' = 'dev'
         'app'         = 'testapp'
@@ -16,21 +16,6 @@ param(
 )
 
 $sasTokenExpiry = (Get-Date).AddHours(2).ToString('u') -replace ' ', 'T'
-
-# create or update service principal
-if (!($sp = Get-AzADServicePrincipal -DisplayName $spName)) {
-    Write-Host -Object "creating Service Principal: [$spName]"
-    $sp = New-AzADServicePrincipal -SkipAssignment -DisplayName $spName -EndDate $(Get-Date).AddYears(1)
-    $secret = [System.Net.NetworkCredential]::new([string]::Empty, $sp.Secret).Password
-}
-else {
-    Write-Host -Object "resetting password for Servivce Principal: [$spName]"
-    $s = (New-AzADSpCredential -ObjectId $sp.Id -EndDate $(Get-Date).AddYears(1)).Secret
-    $secret = [System.Net.NetworkCredential]::new([string]::Empty, $s).Password
-
-    # wait for secret changes to take effect
-    Start-Sleep -Seconds 10
-}
 
 # create resource group
 if (!($rg = Get-AzResourceGroup -Name $rgName -Location $location -ErrorAction SilentlyContinue)) {
@@ -65,11 +50,8 @@ New-AzResourceGroupDeployment -Name $deploymentName `
     -Mode Incremental `
     -TemplateFile $PSScriptRoot\..\templates\azuredeploy.json `
     -TemplateParameterFile $PSScriptRoot\..\templates\azuredeploy.parameters.json `
-    -AksServicePrincipalAppId $sp.ApplicationId `
-    -AksServicePrincipalClientSecret $secret `
-    -AksServicePrincipalObjectId $sp.Id `
     -AksNodeCount $aksNodeCount `
-    -AksAgentVmSize $aksAgentVmSize `
+    -AksNodeVMSize $aksNodeVMSize `
     -AksVersion $aksVersion `
     -MaxPods $aksMaxPods `
     -StorageUri $storageDeployment.Outputs.storageContainerUri.value `

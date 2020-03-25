@@ -44,17 +44,8 @@
         "aksNodeCount": {
             "value": 3
         },
-        "aksAgentVMSize": {
+        "aksNodeVMSize": {
             "value": "Standard_D4s_v3"
-        },
-        "aksServicePrincipalAppId": {
-            "value": null
-        },
-        "aksServicePrincipalClientSecret": {
-            "value": null
-        },
-        "aksServicePrincipalObjectId": {
-            "value": null
         }
     }
 }

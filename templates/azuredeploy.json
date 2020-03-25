@@ -1,5 +1,5 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "deploymentMode": {
@@ -29,22 +29,13 @@
             "type": "int",
             "defaultValue": 3
         },
-        "aksAgentVMSize": {
+        "aksNodeVMSize": {
             "type": "string",
             "defaultValue": "Standard_D4s_v3"
         },
         "maxPods": {
             "type": "int",
             "defaultValue": 50
-        },
-        "aksServicePrincipalAppId": {
-            "type": "string"
-        },
-        "aksServicePrincipalClientSecret": {
-            "type": "string"
-        },
-        "aksServicePrincipalObjectId": {
-            "type": "string"
         }
     },
     "variables": {
@@ -114,20 +105,11 @@
                     "aksVnetName": {
                         "value": "[concat(parameters('vNets')[0].name, '-', variables('resgpguid'))]"
                     },
-                    "aksAgentVMSize": {
-                        "value": "[parameters('aksAgentVMSize')]"
+                    "aksNodeVMSize": {
+                        "value": "[parameters('aksNodeVMSize')]"
                     },
                     "aksSubnetName": {
                         "value": "[reference('Microsoft.Resources/deployments/linkedTemplate-vnet-0').outputs.subnetRefs.value[0].name]"
-                    },
-                    "aksServicePrincipalAppId": {
-                        "value": "[parameters('aksServicePrincipalAppId')]"
-                    },
-                    "aksServicePrincipalClientSecret": {
-                        "value": "[parameters('aksServicePrincipalClientSecret')]"
-                    },
-                    "aksServicePrincipalObjectId": {
-                        "value": "[parameters('aksServicePrincipalObjectId')]"
                     }
                 }
             }
