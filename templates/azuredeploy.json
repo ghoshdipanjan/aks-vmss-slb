@@ -102,14 +102,8 @@
                     "aksSubnetId": {
                         "value": "[reference('Microsoft.Resources/deployments/linkedTemplate-vnet-0').outputs.subnetRefs.value[0].id]"
                     },
-                    "aksVnetName": {
-                        "value": "[concat(parameters('vNets')[0].name, '-', variables('resgpguid'))]"
-                    },
                     "aksNodeVMSize": {
                         "value": "[parameters('aksNodeVMSize')]"
-                    },
-                    "aksSubnetName": {
-                        "value": "[reference('Microsoft.Resources/deployments/linkedTemplate-vnet-0').outputs.subnetRefs.value[0].name]"
                     }
                 }
             }
