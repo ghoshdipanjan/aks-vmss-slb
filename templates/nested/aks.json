@@ -295,12 +295,6 @@
         "aksSubnetId": {
             "type": "string"
         },
-        "aksVnetName": {
-            "type": "string"
-        },
-        "aksSubnetName": {
-            "type": "string"
-        },
         "suffix": {
             "type": "string"
         },
@@ -337,7 +331,8 @@
         "workspaceName": "[concat('workspace', '-', parameters('suffix'))]",
         "storageAccountName": "[concat('stor', parameters('suffix'))]",
         "aksClusterName": "[concat('aks' , '-', parameters('suffix'))]",
-        "aksClusterId": "[resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName'))]"
+        "aksClusterId": "[resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName'))]",
+        "NetworkContributorRole": "[concat(subscription().Id, '/providers/Microsoft.Authorization/roleDefinitions/4d97b98b-1d4f-4787-a291-c67834d212e7')]"
     },
     "resources": [
         {
@@ -414,6 +409,19 @@
                     "dnsServiceIP": "[parameters('aksDnsServiceIP')]",
                     "dockerBridgeCidr": "[parameters('aksDockerBridgeCIDR')]"
                 }
+            }
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "name": "[guid(resourceGroup().id, 'aksManagedIdentity')]",
+            "apiVersion": "2017-10-01-preview",
+            "dependsOn": [
+                "[variables('aksClusterName')]"
+            ],
+            "properties": {
+                "roleDefinitionId": "[variables('networkContributorRole')]",
+                "principalId": "[reference(concat(resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName')), '/providers/Microsoft.ManagedIdentity/Identities/default'), '2015-08-31-PREVIEW').principalId]",
+                "scope": "[resourceGroup().Id]"
             }
         }
     ],

@@ -5,7 +5,7 @@ param(
     $spName = "$prefix-sp",
     $deploymentName = $('{0}-{1}-{2}' -f $prefix, 'deployment', (Get-Date).ToFileTime()),
     $containerName = 'templates',
-    $aksVersion = '1.15.10',
+    $aksVersion = '1.16.7',
     $aksNodeCount = 1,
     $aksMaxPods = 50,
     $aksNodeVMSize = 'Standard_D2s_v3',
